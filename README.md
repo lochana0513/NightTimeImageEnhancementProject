@@ -18,10 +18,7 @@ Ensure you have Python 3.x installed on your system. You can download it from th
 
 ### Setup
 
-1. **Clone the Repository**
 
-   git clone https://github.com/yourusername/NightTimeImageEnhancementProject.git
-   cd NightTimeImageEnhancementProject
 
 2. **Create a Virtual Environment**
 
