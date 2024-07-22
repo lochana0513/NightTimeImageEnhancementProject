@@ -9,12 +9,15 @@ class ImageEnhancerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Night-time Image Enhancer")
-        self.root.geometry("800x600")
+        self.root.geometry("1200x600")
 
         self.image_path = ""
         self.image = None
         self.enhanced_image = None
         self.noise_reduction_level = 10
+        self.brightness = 1.0
+        self.contrast = 1.0
+        self.saturation = 1.0
 
         self.root.configure(bg="#2b2b2b")
 
@@ -42,19 +45,50 @@ class ImageEnhancerApp:
                   background=[('active', '#1E90FF')],
                   foreground=[('active', 'white')])
 
-        # Slider for noise reduction level
+        # Frame for sliders
         self.slider_frame = tk.Frame(root, bg="#2b2b2b")
         self.slider_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 
-        self.slider_label = tk.Label(self.slider_frame, text="Noise Reduction Level", font=('Helvetica', 10, 'bold'), bg="#2b2b2b", fg="white")
-        self.slider_label.pack(side=tk.LEFT, padx=5)
+        # Slider for noise reduction level
+        self.noise_label = tk.Label(self.slider_frame, text="Noise Reduction Level", font=('Helvetica', 10, 'bold'), bg="#2b2b2b", fg="white")
+        self.noise_label.grid(row=0, column=0, padx=5, pady=5)
+        self.noise_slider = ttk.Scale(self.slider_frame, from_=0, to=50, orient=tk.HORIZONTAL, style="TScale", command=self.update_image)
+        self.noise_slider.set(self.noise_reduction_level)
+        self.noise_slider.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        self.noise_reduction_slider = ttk.Scale(self.slider_frame, from_=0, to=50, orient=tk.HORIZONTAL, style="TScale", command=self.update_noise_reduction_level)
-        self.noise_reduction_slider.set(self.noise_reduction_level)
-        self.noise_reduction_slider.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        # Slider for brightness
+        self.brightness_label = tk.Label(self.slider_frame, text="Brightness", font=('Helvetica', 10, 'bold'), bg="#2b2b2b", fg="white")
+        self.brightness_label.grid(row=1, column=0, padx=5, pady=5)
+        self.brightness_slider = ttk.Scale(self.slider_frame, from_=0.5, to=2.0, orient=tk.HORIZONTAL, style="TScale", command=self.update_image)
+        self.brightness_slider.set(self.brightness)
+        self.brightness_slider.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-        self.image_label = tk.Label(root, bg="#2b2b2b", fg="white")
-        self.image_label.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        # Slider for contrast
+        self.contrast_label = tk.Label(self.slider_frame, text="Contrast", font=('Helvetica', 10, 'bold'), bg="#2b2b2b", fg="white")
+        self.contrast_label.grid(row=2, column=0, padx=5, pady=5)
+        self.contrast_slider = ttk.Scale(self.slider_frame, from_=0.5, to=2.0, orient=tk.HORIZONTAL, style="TScale", command=self.update_image)
+        self.contrast_slider.set(self.contrast)
+        self.contrast_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+        # Slider for saturation
+        self.saturation_label = tk.Label(self.slider_frame, text="Saturation", font=('Helvetica', 10, 'bold'), bg="#2b2b2b", fg="white")
+        self.saturation_label.grid(row=3, column=0, padx=5, pady=5)
+        self.saturation_slider = ttk.Scale(self.slider_frame, from_=0.5, to=2.0, orient=tk.HORIZONTAL, style="TScale", command=self.update_image)
+        self.saturation_slider.set(self.saturation)
+        self.saturation_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+
+        self.slider_frame.columnconfigure(1, weight=1)
+
+        # Frame for images
+        self.image_frame = tk.Frame(root, bg="#2b2b2b")
+        self.image_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+
+        # Labels for original and enhanced images
+        self.original_image_label = tk.Label(self.image_frame, bg="#2b2b2b", fg="white")
+        self.original_image_label.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5, pady=5)
+
+        self.enhanced_image_label = tk.Label(self.image_frame, bg="#2b2b2b", fg="white")
+        self.enhanced_image_label.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=5, pady=5)
 
     def create_rounded_button(self, parent, text, command, state=tk.NORMAL):
         button_canvas = tk.Canvas(parent, width=150, height=40, bg="#2b2b2b", bd=0, highlightthickness=0, relief='ridge')
@@ -94,20 +128,32 @@ class ImageEnhancerApp:
 
         return button_canvas
 
-    def update_noise_reduction_level(self, value):
-        self.noise_reduction_level = int(float(value))
+    def update_image(self, _=None):
+        self.noise_reduction_level = int(float(self.noise_slider.get()))
+        self.brightness = float(self.brightness_slider.get())
+        self.contrast = float(self.contrast_slider.get())
+        self.saturation = float(self.saturation_slider.get())
+        if self.image is not None:
+            enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
+            self.display_image(enhanced_image, original=False)
+            self.enhanced_image = enhanced_image
 
     def load_image(self):
         self.image_path = filedialog.askopenfilename()
         if self.image_path:
             self.image = cv2.imread(self.image_path)
-            self.display_image(self.image)
+            self.display_image(self.image, original=True)
             self.enhance_button.config(state=tk.NORMAL)
+            self.save_button.config(state=tk.NORMAL)
+
+            # Automatically enhance the image with initial values
+            self.enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
+            self.display_image(self.enhanced_image, original=False)
 
     def enhance_image(self):
         if self.image is not None:
-            enhanced_image = enhance_image(self.image, self.noise_reduction_level)
-            self.display_image(enhanced_image)
+            enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
+            self.display_image(enhanced_image, original=False)
             self.enhanced_image = enhanced_image
             self.save_button.config(state=tk.NORMAL)
 
@@ -115,24 +161,23 @@ class ImageEnhancerApp:
         if self.enhanced_image is not None:
             save_path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")])
             if save_path:
-                cv2.imwrite(save_path, cv2.cvtColor(self.enhanced_image, cv2.COLOR_RGB2BGR))
-                messagebox.showinfo("Image Saved", f"Enhanced image saved to {save_path}")
+                cv2.imwrite(save_path, self.enhanced_image)
+                messagebox.showinfo("Image Saved", f"Image saved successfully at {save_path}")
 
-    def display_image(self, image):
-        max_width, max_height = self.image_label.winfo_width(), self.image_label.winfo_height()
+    def display_image(self, image, original=True):
+        max_size = (500, 500)
+        image_resized = cv2.resize(image, max_size, interpolation=cv2.INTER_AREA)
 
-        image_height, image_width = image.shape[:2]
-        ratio = min(max_width / image_width, max_height / image_height)
-        new_size = (int(image_width * ratio), int(image_height * ratio))
+        image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(image_rgb)
+        tk_image = ImageTk.PhotoImage(pil_image)
 
-        resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
-
-        image_rgb = cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB)
-        image_pil = Image.fromarray(image_rgb)
-        image_tk = ImageTk.PhotoImage(image_pil)
-
-        self.image_label.config(image=image_tk)
-        self.image_label.image = image_tk
+        if original:
+            self.original_image_label.config(image=tk_image)
+            self.original_image_label.image = tk_image
+        else:
+            self.enhanced_image_label.config(image=tk_image)
+            self.enhanced_image_label.image = tk_image
 
 if __name__ == "__main__":
     root = tk.Tk()
