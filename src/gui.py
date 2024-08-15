@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 from PIL import Image, ImageTk
 import cv2
-from src.image_enhancement import enhance_image
+from src.image_enhancement import enhance_image, auto_correct_image
 
 class ImageEnhancerApp:
     def __init__(self, root):
@@ -133,7 +133,9 @@ class ImageEnhancerApp:
         self.brightness = float(self.brightness_slider.get())
         self.contrast = float(self.contrast_slider.get())
         self.saturation = float(self.saturation_slider.get())
+        
         if self.image is not None:
+            # Enhance the image with the current settings
             enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
             self.display_image(enhanced_image, original=False)
             self.enhanced_image = enhanced_image
@@ -141,43 +143,52 @@ class ImageEnhancerApp:
     def load_image(self):
         self.image_path = filedialog.askopenfilename()
         if self.image_path:
-            self.image = cv2.imread(self.image_path)
-            self.display_image(self.image, original=True)
-            self.enhance_button.config(state=tk.NORMAL)
-            self.save_button.config(state=tk.NORMAL)
+            try:
+                self.image = cv2.imread(self.image_path)
+                if self.image is None:
+                    raise ValueError("Unsupported image format or file not found.")
+                self.display_image(self.image, original=True)
+                self.enhance_button.config(state=tk.NORMAL)
+                self.save_button.config(state=tk.NORMAL)
 
-            # Automatically enhance the image with initial values
-            self.enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
-            self.display_image(self.enhanced_image, original=False)
+                # Automatically enhance the image with initial values
+                auto_noise_reduction, auto_brightness, auto_contrast, auto_saturation = auto_correct_image(self.image)
+                self.noise_slider.set(auto_noise_reduction)
+                self.brightness_slider.set(auto_brightness)
+                self.contrast_slider.set(auto_contrast)
+                self.saturation_slider.set(auto_saturation)
+                self.update_image()
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load image: {e}")
+
+    def display_image(self, image, original=True):
+        if original:
+            self.original_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            self.original_image.thumbnail((400, 400))
+            self.original_photo = ImageTk.PhotoImage(self.original_image)
+            self.original_image_label.config(image=self.original_photo)
+            self.original_image_label.image = self.original_photo
+        else:
+            self.enhanced_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            self.enhanced_image.thumbnail((400, 400))
+            self.enhanced_photo = ImageTk.PhotoImage(self.enhanced_image)
+            self.enhanced_image_label.config(image=self.enhanced_photo)
+            self.enhanced_image_label.image = self.enhanced_photo
 
     def enhance_image(self):
         if self.image is not None:
             enhanced_image = enhance_image(self.image, self.noise_reduction_level, self.brightness, self.contrast, self.saturation)
             self.display_image(enhanced_image, original=False)
             self.enhanced_image = enhanced_image
-            self.save_button.config(state=tk.NORMAL)
 
     def save_image(self):
         if self.enhanced_image is not None:
-            save_path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")])
+            save_path = filedialog.asksaveasfilename(defaultextension=".png",
+                                                   filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
             if save_path:
-                cv2.imwrite(save_path, self.enhanced_image)
-                messagebox.showinfo("Image Saved", f"Image saved successfully at {save_path}")
-
-    def display_image(self, image, original=True):
-        max_size = (500, 500)
-        image_resized = cv2.resize(image, max_size, interpolation=cv2.INTER_AREA)
-
-        image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
-        pil_image = Image.fromarray(image_rgb)
-        tk_image = ImageTk.PhotoImage(pil_image)
-
-        if original:
-            self.original_image_label.config(image=tk_image)
-            self.original_image_label.image = tk_image
-        else:
-            self.enhanced_image_label.config(image=tk_image)
-            self.enhanced_image_label.image = tk_image
+                self.enhanced_image.save(save_path)
+                messagebox.showinfo("Success", "Image saved successfully!")
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1,7 +1,34 @@
 import cv2
 import numpy as np
 
-def enhance_image(image, noise_reduction_level, brightness, contrast, saturation):
+def auto_correct_image(image):
+    # Auto-calculating optimal noise reduction, brightness, contrast, and saturation
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Calculate the noise level based on the variance of the Laplacian (high variance means less noise)
+    noise_variance = cv2.Laplacian(gray_image, cv2.CV_64F).var()
+    if noise_variance < 50:  # lower variance suggests more noise
+        noise_reduction_level = 30
+    else:
+        noise_reduction_level = 10
+
+    # Calculate brightness and contrast
+    mean_brightness = np.mean(gray_image)
+    brightness = 1.0 + (128 - mean_brightness) / 128  # normalize brightness around 128
+    contrast = 1.2 if mean_brightness < 100 else 0.8 if mean_brightness > 150 else 1.0
+
+    # Calculate saturation based on the mean saturation of the image
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mean_saturation = np.mean(hsv_image[:, :, 1])
+    saturation = 1.2 if mean_saturation < 100 else 0.8 if mean_saturation > 150 else 1.0
+
+    return noise_reduction_level, brightness, contrast, saturation
+
+def enhance_image(image, noise_reduction_level=None, brightness=None, contrast=None, saturation=None):
+    # If any value is not provided, auto-correct it
+    if noise_reduction_level is None or brightness is None or contrast is None or saturation is None:
+        noise_reduction_level, brightness, contrast, saturation = auto_correct_image(image)
+    
     enhanced_image = image.copy()
 
     # Denoise image
