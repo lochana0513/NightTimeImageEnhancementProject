@@ -1,0 +1,23 @@
+|-- .gitattributes
+|-- .gitignore
+|-- data
+    |-- sample_images
+        |-- 6322_kenlee_ojo-oro-arch_200517_0207_earth-135sf25iso400_sky17photosat15sf25iso4000_milkyway-landscape-low-lookingup_2560x1440px-Photofocus-Header.jpg
+        |-- bsfb.jpg
+        |-- gbndgn.jpg
+        |-- sample_night_image.jpg
+|-- LICENSE
+|-- main.py
+|-- README.md
+|-- requirements.txt
+|-- src
+    |-- gui.py
+    |-- image_enhancement.py
+    |-- utils.py
+    |-- __init__.py
+    |-- __pycache__
+        |-- gui.cpython-312.pyc
+        |-- image_enhancement.cpython-312.pyc
+        |-- __init__.cpython-312.pyc
+|-- tests
+    |-- test_image_enhancement.py
